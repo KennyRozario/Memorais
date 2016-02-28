@@ -57,13 +57,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         mImages = new ArrayList<Bitmap>();
+        mPictures = new HashMap<>();
 
         Button button = (Button)findViewById(R.id.dank_button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 addPictures();
-
                 for (int i = 0; i < mImages.size(); i++) {
                     Bitmap bitmap = mImages.get(i);
                     new AsyncTask<Bitmap, Void, RecognitionResult>() {
@@ -103,17 +103,24 @@ public class MainActivity extends AppCompatActivity {
 
         if (cursor.moveToFirst()) {
             int i = 0;
-            while (cursor.getPosition() < projection.length){
+            Log.d(TAG, projection.length + "");
+                while (cursor.getPosition() < projection.length) {
                 String imageLocation = cursor.getString(1);
                 File imageFile = new File(imageLocation);
                 if (imageFile.exists()) {
-                    Bitmap bm = BitmapFactory.decodeFile(imageLocation);
+                    Log.d(TAG, i +"");
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inJustDecodeBounds = false;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    options.inDither = true;
+                    Bitmap bm = BitmapFactory.decodeFile(imageLocation, options);
                     //TODO:add stuff here
                     mImages.add(i, bm);
                     i++;
                     cursor.moveToNext();
                 }
             }
+
         }
     }
 
@@ -171,7 +178,9 @@ public class MainActivity extends AppCompatActivity {
                     Picture picture = new Picture();
                     picture.setBitmap(mImages.get(i));
                     picture.setTags(tags);
-                    mPictures.put(picture.getBitmap(), picture.getTags());
+                    if (picture != null) {
+                        mPictures.put(picture.getBitmap(), picture.getTags());
+                    }
                 }
             } else {
                 Log.e(TAG, "Clarifai: " + result.getStatusMessage());

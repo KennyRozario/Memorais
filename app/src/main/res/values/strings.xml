@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SpartaHack2016</string>
+    <string name="app_name">Memorais</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_tagged_pictures">TaggedPictures</string>
 </resources>

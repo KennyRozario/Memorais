@@ -1,6 +1,7 @@
 package com.example.kenny.spartahack2016;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -20,6 +21,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
 
 import com.clarifai.api.ClarifaiClient;
 import com.clarifai.api.RecognitionRequest;
@@ -31,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private ArrayList<Bitmap> mImages;
-    public HashMap<Bitmap, ArrayList<Tag>> mPictures;
+    public static HashMap<Bitmap, ArrayList<Tag>> mPictures;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         mImages = new ArrayList<Bitmap>();
         mPictures = new HashMap<>();
 
+        final EditText editText = (EditText)findViewById(R.id.tag_search);
         Button button = (Button)findViewById(R.id.dank_button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,10 +78,16 @@ public class MainActivity extends AppCompatActivity {
 
                         @Override
                         protected void onPostExecute(RecognitionResult result) {
-                            updateUIForResult(result);
+                            findTags(result);
                         }
                     }.execute(bitmap);
                 }
+
+                String tagSearch = editText.getText().toString();
+                compareTags(mPictures, tagSearch);
+
+                Intent i = new Intent(MainActivity.this, TaggedPictures.class);
+                startActivity(i);
             }
         });
     }
@@ -124,28 +134,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //    private Bitmap loadBitmapFromUri(Uri uri) {
-//        try {
-//            // The image may be large. Load an image that is sized for display. This follows best
-//            // practices from http://developer.android.com/training/displaying-bitmaps/load-bitmap.html
-//            BitmapFactory.Options opts = new BitmapFactory.Options();
-//            opts.inJustDecodeBounds = true;
-//            BitmapFactory.decodeStream(getContentResolver().openInputStream(uri), null, opts);
-//            int sampleSize = 1;
-//            while (opts.outWidth / (2 * sampleSize) >= imageView.getWidth() &&
-//                    opts.outHeight / (2 * sampleSize) >= imageView.getHeight()) {
-//                sampleSize *= 2;
-//            }
-//
-//            opts = new BitmapFactory.Options();
-//            opts.inSampleSize = sampleSize;
-//            return BitmapFactory.decodeStream(getContentResolver().openInputStream(uri), null, opts);
-//        } catch (IOException e) {
-//            Log.e(TAG, "Error loading image: " + uri, e);
-//        }
-//        return null;
-//    }
-
     private RecognitionResult recognizeBitmap(Bitmap bitmap) {
         try {
             // Scale down the image.
@@ -165,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateUIForResult(RecognitionResult result) {
+    private void findTags(RecognitionResult result) {
         if (result != null) {
             if (result.getStatusCode() == RecognitionResult.StatusCode.OK) {
 
@@ -175,9 +163,7 @@ public class MainActivity extends AppCompatActivity {
                         tags.add(tag);
                         Log.d(TAG, tag.getName());
                     }
-                    Picture picture = new Picture();
-                    picture.setBitmap(mImages.get(i));
-                    picture.setTags(tags);
+                    Picture picture = new Picture(mImages.get(i), tags);
                     if (picture != null) {
                         mPictures.put(picture.getBitmap(), picture.getTags());
                     }
@@ -187,6 +173,24 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             Log.d(TAG, "There was an error recognizing the image.");
+        }
+    }
+
+    private void compareTags(HashMap<Bitmap, ArrayList<Tag>> hashMap, String searchTag){
+        Iterator iterator = hashMap.entrySet().iterator();
+//        ArrayList<Picture> pictures = new ArrayList<>();
+        mPictures.clear();
+        while (iterator.hasNext()) {
+            Bitmap key = (Bitmap)iterator.next();
+            ArrayList<Tag> tags = hashMap.get(key);
+
+            for (Tag tag : tags) {
+                if (tag.getName().equalsIgnoreCase(searchTag.trim())){
+                    mPictures.put(key, tags);
+//                    pictures.add(new Picture(key, tags));
+                    break;
+                }
+            }
         }
     }
 

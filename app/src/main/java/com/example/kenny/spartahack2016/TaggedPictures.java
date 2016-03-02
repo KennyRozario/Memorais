@@ -31,7 +31,7 @@ public class TaggedPictures extends AppCompatActivity {
         mLayoutManager = new GridLayoutManager(this, 3);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        HashMap<Bitmap, ArrayList<Tag>> hashMap = MainActivity.mPictures;
+        HashMap<Bitmap, ArrayList<Tag>> hashMap = MainActivity.mQueriedPictures;
         ImageView imageView = (ImageView)findViewById(R.id.tagged_image);
     }
 }

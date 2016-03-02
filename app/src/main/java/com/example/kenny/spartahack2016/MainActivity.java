@@ -6,16 +6,12 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Credentials;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -40,40 +36,35 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 100;
 
-    private final ClarifaiClient mClient = new ClarifaiClient(com.example.kenny.spartahack2016.Credentials.CLIENT_ID,
-            com.example.kenny.spartahack2016.Credentials.CLIENT_SECRET);
-
 
     private ArrayList<Bitmap> mImages;
-    public static HashMap<Bitmap, ArrayList<Tag>> mPictures;
+    private static HashMap<Bitmap, ArrayList<Tag>> mPictures;
+    public static HashMap<Bitmap, ArrayList<Tag>> mQueriedPictures;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)){
-            }else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
-            }
-        }
-
         mImages = new ArrayList<Bitmap>();
         mPictures = new HashMap<>();
+
+        checkPermissions();
 
         final EditText editText = (EditText)findViewById(R.id.tag_search);
         Button button = (Button)findViewById(R.id.dank_button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addPictures();
+
+                getPicturesFromStorage();
+
                 for (int i = 0; i < mImages.size(); i++) {
                     Bitmap bitmap = mImages.get(i);
                     new AsyncTask<Bitmap, Void, RecognitionResult>() {
                         @Override
                         protected RecognitionResult doInBackground(Bitmap... bitmaps) {
-                            return recognizeBitmap(bitmaps[0]);
+                            return ClarifaiService.recognizeBitmap(bitmaps[0]);
                         }
 
                         @Override
@@ -92,14 +83,24 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //Checks if Marshmallow users have granted permission for reading external storage
+    private void checkPermissions (){
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)){
+            }else {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+            }
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
     }
 
-    //add images from the external storage to the mImages Array
-    private void addPictures(){
+    //add images from the external storage to the mImages Array List
+    private void getPicturesFromStorage(){
         String[] projection = new String[]{
                 MediaStore.Images.ImageColumns._ID,
                 MediaStore.Images.ImageColumns.DATA,
@@ -114,6 +115,7 @@ public class MainActivity extends AppCompatActivity {
         if (cursor.moveToFirst()) {
             int i = 0;
             Log.d(TAG, projection.length + "");
+                //iterate through all the images and add them to the array list mImages
                 while (cursor.getPosition() < projection.length) {
                 String imageLocation = cursor.getString(1);
                 File imageFile = new File(imageLocation);
@@ -124,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
                     options.inPreferredConfig = Bitmap.Config.RGB_565;
                     options.inDither = true;
                     Bitmap bm = BitmapFactory.decodeFile(imageLocation, options);
-                    //TODO:add stuff here
                     mImages.add(i, bm);
                     i++;
                     cursor.moveToNext();
@@ -134,25 +135,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private RecognitionResult recognizeBitmap(Bitmap bitmap) {
-        try {
-            // Scale down the image.
-            Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 320,
-                    320 * bitmap.getHeight() / bitmap.getWidth(), true);
-
-            // Compress the image as a JPEG.
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            scaled.compress(Bitmap.CompressFormat.JPEG, 90, out);
-            byte[] jpeg = out.toByteArray();
-
-            // Send the JPEG to Clarifai and return the result.
-            return mClient.recognize(new RecognitionRequest(jpeg)).get(0);
-        } catch (ClarifaiException e) {
-            Log.e(TAG, "Clarifai error", e);
-            return null;
-        }
-    }
-
+    //Goes through the recognition result of each image and creates a new array of tags for each image
+    //Post: mPictures will be updated with all the resultant images and their appropriate tags
     private void findTags(RecognitionResult result) {
         if (result != null) {
             if (result.getStatusCode() == RecognitionResult.StatusCode.OK) {
@@ -176,18 +160,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //compares queried tags to the ones within mPictures, matching tags results in the respective bitmap
+    //and tags to be put into the HashMap, mQueriedPictures, to only hold the images the user may want
     private void compareTags(HashMap<Bitmap, ArrayList<Tag>> hashMap, String searchTag){
         Iterator iterator = hashMap.entrySet().iterator();
-//        ArrayList<Picture> pictures = new ArrayList<>();
-        mPictures.clear();
+        mQueriedPictures.clear();
         while (iterator.hasNext()) {
             Bitmap key = (Bitmap)iterator.next();
             ArrayList<Tag> tags = hashMap.get(key);
 
             for (Tag tag : tags) {
                 if (tag.getName().equalsIgnoreCase(searchTag.trim())){
-                    mPictures.put(key, tags);
-//                    pictures.add(new Picture(key, tags));
+                    mQueriedPictures.put(key, tags);
                     break;
                 }
             }

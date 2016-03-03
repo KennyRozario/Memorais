@@ -13,10 +13,10 @@ public class Picture {
     private Bitmap mBitmap;
     private ArrayList<Tag> mTags;
 
-    public Picture(Bitmap bitmap, ArrayList<Tag> tags) {
-        this.mBitmap = bitmap;
-        this.mTags = tags;
-    }
+//    public Picture(Bitmap bitmap, ArrayList<Tag> tags) {
+//        this.mBitmap = bitmap;
+//        this.mTags = tags;
+//    }
 
     public void setBitmap(Bitmap bitmap) {
         mBitmap = bitmap;

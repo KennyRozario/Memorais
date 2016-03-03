@@ -26,6 +26,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,11 +45,12 @@ public class MainActivity extends AppCompatActivity {
 
         mImages = new ArrayList<Bitmap>();
         mPictures = new HashMap<>();
+        mQueriedPictures = new HashMap<>();
 
         checkPermissions();
 
-        final EditText editText = (EditText)findViewById(R.id.tag_search);
-        Button button = (Button)findViewById(R.id.dank_button);
+        final EditText editText = (EditText) findViewById(R.id.tag_search);
+        Button button = (Button) findViewById(R.id.dank_button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -80,11 +82,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //Checks if Marshmallow users have granted permission for reading external storage
-    private void checkPermissions (){
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)){
-            }else {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+    private void checkPermissions() {
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            } else {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
             }
         }
     }
@@ -96,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //add images from the external storage to the mImages Array List
-    private void getPicturesFromStorage(){
+    private void getPicturesFromStorage() {
         String[] projection = new String[]{
                 MediaStore.Images.ImageColumns._ID,
                 MediaStore.Images.ImageColumns.DATA,
@@ -108,15 +110,16 @@ public class MainActivity extends AppCompatActivity {
                 .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
                         null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
 
-        if (cursor.moveToFirst()) {
+        if (cursor != null && cursor.moveToFirst()) {
             int i = 0;
             Log.d(TAG, projection.length + "");
-                //iterate through all the images and add them to the array list mImages
-                while (cursor.getPosition() < projection.length) {
+            //iterate through all the images and add them to the array list mImages
+
+            do {
                 String imageLocation = cursor.getString(1);
                 File imageFile = new File(imageLocation);
                 if (imageFile.exists()) {
-                    Log.d(TAG, i +"");
+                    Log.d(TAG, i + "");
                     BitmapFactory.Options options = new BitmapFactory.Options();
                     options.inJustDecodeBounds = false;
                     options.inPreferredConfig = Bitmap.Config.RGB_565;
@@ -124,10 +127,9 @@ public class MainActivity extends AppCompatActivity {
                     Bitmap bm = BitmapFactory.decodeFile(imageLocation, options);
                     mImages.add(i, bm);
                     i++;
-                    cursor.moveToNext();
                 }
-            }
-
+            } while (cursor.moveToNext());
+            cursor.close();
         }
     }
 
@@ -136,18 +138,19 @@ public class MainActivity extends AppCompatActivity {
     private void findTags(RecognitionResult result) {
         if (result != null) {
             if (result.getStatusCode() == RecognitionResult.StatusCode.OK) {
-
-                for (int i = 0; i < mImages.size(); i++){
+                for (int i = 0; i < mImages.size(); i++) {
                     ArrayList<Tag> tags = new ArrayList<Tag>();
-                    for (Tag tag : result.getTags()){
+                    for (Tag tag : result.getTags()) {
                         tags.add(tag);
                         Log.d(TAG, tag.getName());
                     }
-                    Picture picture = new Picture(mImages.get(i), tags);
-                    if (picture != null) {
-                        mPictures.put(picture.getBitmap(), picture.getTags());
-                    }
+                    Picture picture = new Picture();
+                    picture.setBitmap(mImages.get(i));
+                    picture.setTags(tags);
+                    mPictures.put(picture.getBitmap(), picture.getTags());
                 }
+                Log.d(TAG, "mPictures size is: " + mPictures.size());
+
             } else {
                 Log.e(TAG, "Clarifai: " + result.getStatusMessage());
             }
@@ -158,15 +161,26 @@ public class MainActivity extends AppCompatActivity {
 
     //compares queried tags to the ones within mPictures, matching tags results in the respective bitmap
     //and tags to be put into the HashMap, mQueriedPictures, to only hold the images the user may want
-    private void compareTags(HashMap<Bitmap, ArrayList<Tag>> hashMap, String searchTag){
-        Iterator iterator = hashMap.entrySet().iterator();
-        mQueriedPictures.clear();
+    private void compareTags(HashMap<Bitmap, ArrayList<Tag>> hashMap, String searchTag) {
+        Log.d(TAG, "compareTags called");
+
+        if (mQueriedPictures != null) {
+            mQueriedPictures.clear();
+        }
+
+        Iterator iterator = hashMap.keySet().iterator();
+        Log.d(TAG, "iterator created");
+
         while (iterator.hasNext()) {
-            Bitmap key = (Bitmap)iterator.next();
+            Log.d(TAG, "while loop iterator begun");
+            Bitmap key = (Bitmap) iterator.next();
+//            Set<Bitmap> bitmapSet = hashMap.keySet();
+//            bitmapSet.toArray()
             ArrayList<Tag> tags = hashMap.get(key);
 
             for (Tag tag : tags) {
-                if (tag.getName().equalsIgnoreCase(searchTag.trim())){
+                if (tag.getName().equalsIgnoreCase(searchTag.trim())) {
+                    Log.d(TAG, "The matching tag is: " + tag);
                     mQueriedPictures.put(key, tags);
                     break;
                 }

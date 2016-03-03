@@ -15,7 +15,7 @@ import java.util.HashMap;
 public class TaggedPictures extends AppCompatActivity {
 
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private ResultsAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
@@ -23,11 +23,16 @@ public class TaggedPictures extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tagged_pictures);
 
+        HashMap<Bitmap, ArrayList<Tag>> hashMap = MainActivity.mQueriedPictures;
+//        ImageView imageView = (ImageView)findViewById(R.id.tagged_image);
+
         mRecyclerView =(RecyclerView)findViewById(R.id.recycler_view);
         mLayoutManager = new GridLayoutManager(this, 3);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        HashMap<Bitmap, ArrayList<Tag>> hashMap = MainActivity.mQueriedPictures;
-        ImageView imageView = (ImageView)findViewById(R.id.tagged_image);
+        mAdapter = new ResultsAdapter(this, hashMap);
+        mRecyclerView.setAdapter(mAdapter);
     }
+
+
 }

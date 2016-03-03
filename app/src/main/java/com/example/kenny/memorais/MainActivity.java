@@ -1,4 +1,4 @@
-package com.example.kenny.spartahack2016;
+package com.example.kenny.memorais;
 
 import android.Manifest;
 import android.content.Intent;
@@ -19,13 +19,9 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.clarifai.api.ClarifaiClient;
-import com.clarifai.api.RecognitionRequest;
 import com.clarifai.api.RecognitionResult;
 import com.clarifai.api.Tag;
-import com.clarifai.api.exception.ClarifaiException;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;

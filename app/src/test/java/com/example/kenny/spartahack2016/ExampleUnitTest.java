@@ -1,4 +1,4 @@
-package com.example.kenny.spartahack2016;
+package com.example.kenny.memorais;
 
 import org.junit.Test;
 

@@ -1,4 +1,4 @@
-package com.example.kenny.spartahack2016;
+package com.example.kenny.memorais;
 
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -17,8 +17,8 @@ public class ClarifaiService {
 
     private static final String TAG = ClarifaiService.class.getSimpleName();
 
-    private static final ClarifaiClient mClient = new ClarifaiClient(com.example.kenny.spartahack2016.Credentials.CLIENT_ID,
-            com.example.kenny.spartahack2016.Credentials.CLIENT_SECRET);
+    private static final ClarifaiClient mClient = new ClarifaiClient(com.example.kenny.memorais.Credentials.CLIENT_ID,
+            com.example.kenny.memorais.Credentials.CLIENT_SECRET);
 
     // Pre: Requires a bitmap to be passed in
     // Post: Compresses the bitmap, sends it to Clarifai,
